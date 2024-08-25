@@ -1,5 +1,14 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:weather_app/blocs/weather_event.dart';
+import '../../blocs/weather_bloc.dart';
+import '../../models/weather_forecast.dart';
+import '../../services/location_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,241 +18,255 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Map<String, dynamic>> dummyWeatherData = [
-    {
-      "dt": 1724500800,
-      "main": {
-        "temp": 301.89,
-      },
-      "weather": [
-        {
-          "id": 800,
-          "main": "Clear",
-          "description": "clear sky",
-          "icon": "01d"
-        }
-      ],
-      "dt_txt": "2024-08-24 12:00:00"
-    },
-    {
-      "dt": 1724511600,
-      "main": {
-        "temp": 303.09,
-      },
-      "weather": [
-        {
-          "id": 801,
-          "main": "Clouds",
-          "description": "few clouds",
-          "icon": "02d"
-        }
-      ],
-      "dt_txt": "2024-08-24 15:00:00"
-    },
-    {
-      "dt": 1724522400,
-      "main": {
-        "temp": 300.81,
-      },
-      "weather": [
-        {
-          "id": 801,
-          "main": "Clouds",
-          "description": "few clouds",
-          "icon": "02n"
-        }
-      ],
-      "dt_txt": "2024-08-24 18:00:00"
-    },
-    {
-      "dt": 1724533200,
-      "main": {
-        "temp": 297.35,
-      },
-      "weather": [
-        {
-          "id": 800,
-          "main": "rain",
-          "description": "rain",
-          "icon": "01n"
-        }
-      ],
-      "dt_txt": "2024-08-24 21:00:00"
-    },
-    {
-      "dt": 1724544000,
-      "main": {
-        "temp": 295.46,
-      },
-      "weather": [
-        {
-          "id": 802,
-          "main": "Clouds",
-          "description": "scattered clouds",
-          "icon": "03n"
-        }
-      ],
-      "dt_txt": "2024-08-25 00:00:00"
-    },
-  ];
+  final LocationService _locationService = LocationService();
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWeatherData();
+  }
+
+  Future<void> _fetchWeatherData() async {
+    print("Data");
+    try {
+      Position position = await _locationService.getCurrentLocation();
+      print(position);
+      BlocProvider.of<WeatherBloc>(context)
+          .add(FetchWeather(position.latitude, position.longitude));
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      print(e);
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to fetch location.';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   Gradient getBackgroundGradient(String description) {
-    switch (description.toLowerCase()) {
-      case 'clear sky':
-        return const LinearGradient(
-          colors: [Color(0xFF87CEFA), Color(0xFFB0E0E6)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        );
-      case 'few clouds':
-        return const LinearGradient(
-          colors: [Color(0xFF87CEEB), Color(0xFFB0C4DE)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        );
-      case 'scattered clouds':
-      case 'broken clouds':
-        return const LinearGradient(
-          colors: [Color(0xFF87CEEB), Color(0xFFB0E0E6)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        );
-      case 'rain':
-        return const LinearGradient(
-          colors: [Color(0xFF778899), Color(0xFFB0C4DE)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        );
-      case 'thunderstorm':
-        return const LinearGradient(
-          colors: [Color(0xFF4B0082), Color(0xFF483D8B)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        );
-      default:
-        return const LinearGradient(
-          colors: [Color(0xFF87CEEB), Color(0xFFB0C4DE)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        );
+    final desc = description.toLowerCase();
+
+    if (desc.contains('clear sky')) {
+      return const LinearGradient(
+        colors: [Color(0xFF87CEFA), Color(0xFFB0E0E6)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    } else if (desc.contains('few clouds') ||
+        desc.contains('scattered clouds') ||
+        desc.contains('broken clouds')) {
+      return const LinearGradient(
+        colors: [Color(0xFF87CEEB), Color(0xFFB0E0E6)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    } else if (desc.contains('shower rain') || desc.contains('rain')) {
+      return const LinearGradient(
+        colors: [Color(0xFF778899), Color(0xFFB0C4DE)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    } else if (desc.contains('thunderstorm')) {
+      return const LinearGradient(
+        colors: [Color(0xFF4B0082), Color(0xFF483D8B)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    } else if (desc.contains('snow')) {
+      return const LinearGradient(
+        colors: [Color(0xFFffffff), Color(0xFFf0f8ff)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    } else if (desc.contains('mist') || desc.contains('fog')) {
+      return const LinearGradient(
+        colors: [Color(0xFFb0e0e6), Color(0xFFd3d3d3)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    } else if (desc.contains('dust')) {
+      return const LinearGradient(
+        colors: [Color(0xFFf5deb3), Color(0xFFd2b48c)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    } else {
+      return const LinearGradient(
+        colors: [Color(0xFF87CEEB), Color(0xFFB0C4DE)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
     }
   }
 
   IconData getWeatherIcon(String description) {
-    switch (description.toLowerCase()) {
-      case 'clear sky':
-        return Icons.wb_sunny;
-      case 'few clouds':
-      case 'scattered clouds':
-      case 'broken clouds':
-        return Icons.cloud;
-      case 'rain':
-        return Icons.grain;
-      case 'thunderstorm':
-        return Icons.bolt;
-      default:
-        return Icons.cloud_queue;
+    final desc = description.toLowerCase();
+
+    if (desc.contains('clear sky')) {
+      return Icons.wb_sunny;
+    } else if (desc.contains('few clouds') ||
+        desc.contains('scattered clouds') ||
+        desc.contains('broken clouds')) {
+      return Icons.cloud;
+    } else if (desc.contains('shower rain') || desc.contains('rain')) {
+      return Icons.grain;
+    } else if (desc.contains('thunderstorm')) {
+      return Icons.bolt;
+    } else if (desc.contains('snow')) {
+      return Icons.ac_unit;
+    } else if (desc.contains('mist') || desc.contains('fog')) {
+      return Icons.foggy;
+    } else if (desc.contains('dust')) {
+      return Icons.cloud;
+    } else {
+      return Icons.cloud_queue;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentWeather = dummyWeatherData[3];
-    final nextFourDays = dummyWeatherData.sublist(1, 5);
-    print(dummyWeatherData);
-    print(currentWeather);
-    print(currentWeather['weather']);
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: getBackgroundGradient(currentWeather['weather'][0]['description']),
-        ),
-        child: Column(
-          children: [
-            // Current Weather Section
-            Expanded(
-              flex: 55,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      getWeatherIcon(currentWeather['weather'][0]['description']),
-                      size: 100,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      '${(currentWeather['main']['temp'] - 273.15).toStringAsFixed(1)}°C',
-                      style: const TextStyle(
-                        fontSize: 48,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      currentWeather['weather'][0]['description'],
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
+    return BlocBuilder<WeatherBloc, List<WeatherForecast>>(
+      builder: (context, forecasts) {
+        if (_isLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (_errorMessage.isNotEmpty) {
+          return Scaffold(
+            body: Center(child: Text(_errorMessage)),
+          );
+        }
+
+        print(forecasts);
+        final currentWeather = forecasts.isNotEmpty
+            ? forecasts.first
+            : WeatherForecast((b) => b
+              ..dt = 0
+              ..main = MainBuilder()
+              ..weather = ListBuilder<Weather>([
+                Weather((b) => b..description = '-'),
+              ])
+              ..dtTxt = '-');
+
+        print(currentWeather.main.temp);
+        final nextFourDays = forecasts.length > 1 ? forecasts.sublist(1) : [];
+
+        return Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: getBackgroundGradient(
+                currentWeather.weather.isNotEmpty
+                    ? currentWeather.weather.first.description
+                    : '-',
               ),
             ),
-            // Forecast Section
-            Expanded(
-              flex: 25,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                scrollDirection: Axis.horizontal,
-                itemCount: nextFourDays.length,
-                itemBuilder: (context, index) {
-                  final weather = nextFourDays[index];
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          offset: const Offset(0, 5),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
+            child: Column(
+              children: [
+                // Current Weather Section
+                Expanded(
+                  flex: 55,
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          DateFormat('MMM d').format(
-                            DateTime.fromMillisecondsSinceEpoch(
-                                weather['dt'] * 1000),
-                          ),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 5),
                         Icon(
-                          getWeatherIcon(weather['weather'][0]['description']),
-                          color: Colors.black,
+                          getWeatherIcon(
+                            currentWeather.weather.isNotEmpty
+                                ? currentWeather.weather.first.description
+                                : '-',
+                          ),
+                          size: 100,
+                          color: Colors.white,
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 10),
                         Text(
-                          '${(weather['main']['temp'] - 273.15).toStringAsFixed(1)}°C',
-                          style: const TextStyle(fontSize: 16),
+                          '${(currentWeather.main.temp ?? 0).toStringAsFixed(1)}°C',
+                          style: const TextStyle(
+                            fontSize: 48,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          currentWeather.weather.isNotEmpty
+                              ? currentWeather.weather.first.description
+                              : '-',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+                // Forecast Section
+                Expanded(
+                  flex: 25,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: nextFourDays.length,
+                    itemBuilder: (context, index) {
+                      final weather = nextFourDays[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              offset: const Offset(0, 5),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              DateFormat('MMM d').format(
+                                DateTime.fromMillisecondsSinceEpoch(
+                                  weather.dt * 1000,
+                                ),
+                              ),
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 5),
+                            Icon(
+                              getWeatherIcon(weather.weather.isNotEmpty
+                                  ? weather.weather.first.description
+                                  : '-'),
+                              color: Colors.black,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              '${(weather.main.temp).toStringAsFixed(1)}°C',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
