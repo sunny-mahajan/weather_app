@@ -176,6 +176,19 @@ class CurrentWeatherWidget extends StatelessWidget {
               color: Colors.white,
             ),
           ),
+          Text(
+            currentWeather.weather.isNotEmpty
+                ? DateFormat('MMM d').format(
+                    DateTime.fromMillisecondsSinceEpoch(
+                      currentWeather.dt * 1000,
+                    ),
+                  )
+                : '-',
+            style: const TextStyle(
+              fontSize: 20,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );
