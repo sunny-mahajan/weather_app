@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../core/constants.dart' as constants;
 
 class ApiService {
   final Dio _dio;
@@ -7,7 +8,7 @@ class ApiService {
     _dio.options.baseUrl = 'https://api.openweathermap.org/data/2.5/';
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        options.queryParameters['appid'] = '37ea9939152496e5de6ca532f93817fd';
+        options.queryParameters['appid'] = constants.APP_ID;
         return handler.next(options);
       },
     ));
