@@ -29,17 +29,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchWeatherData() async {
-    print("data");
     try {
       Position position = await _locationService.getCurrentLocation();
-      print(position);
+
       BlocProvider.of<WeatherBloc>(context)
           .add(FetchWeather(position.latitude, position.longitude));
+
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
-      print(e);
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to fetch location.';

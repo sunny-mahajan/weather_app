@@ -33,7 +33,7 @@ class WeatherApp extends StatelessWidget {
             theme: ThemeData(primarySwatch: Colors.blue),
             home: BlocProvider(
               create: (context) => WeatherBloc(WeatherRepository(ApiService())),
-              child: HomeScreen(),
+              child: const HomeScreen(),
             ),
           );
         });
