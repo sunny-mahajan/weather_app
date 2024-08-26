@@ -20,16 +20,13 @@ class WeatherRepository {
         },
       );
 
-      // Ensure the response contains the expected data
-      if (response != null || response['list'] == null) {
-        return [];
-      }
-
       final List<dynamic> list = response['list'];
+      print(list);
       final forecasts = list
           .map((item) => WeatherForecast((b) => b
             ..dt = item['dt']
-            ..main.update((b) => b..temp = item['main']['temp'])
+            ..main.update(
+                (b) => b..temp = (item['main']['temp'] as num).toDouble())
             ..weather.replace([
               Weather((b) => b..description = item['weather'][0]['description'])
             ])
@@ -40,7 +37,7 @@ class WeatherRepository {
       final uniqueDates = forecasts
           .map((f) => DateFormat('yyyy-MM-dd').format(DateTime.parse(f.dtTxt)))
           .toSet()
-          .take(5)
+          .take(6)
           .toList();
 
       // Filter forecasts to get one per day for the next 5 days
@@ -48,9 +45,16 @@ class WeatherRepository {
           .map((date) => forecasts.firstWhere((f) =>
               DateFormat('yyyy-MM-dd').format(DateTime.parse(f.dtTxt)) == date))
           .toList();
-    } catch (e) {
-      // Log the error if needed
+    } catch (e, stackTrace) {
+      // Extract the relevant stack trace information
+      final traceLines = stackTrace.toString().split('\n');
+      final relevantTrace =
+          traceLines.isNotEmpty ? traceLines[0] : 'No stack trace available';
+
+      // Log the error with the line number
       print('Error fetching weather data: $e');
+      print('Occurred at: $relevantTrace');
+
       // Return an empty list if there's an error
       return [];
     }

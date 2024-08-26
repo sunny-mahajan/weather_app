@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchWeatherData() async {
-    print("Data");
+    print("data");
     try {
       Position position = await _locationService.getCurrentLocation();
       print(position);
@@ -147,119 +147,142 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        print(forecasts);
         final currentWeather = forecasts.isNotEmpty
             ? forecasts.first
             : WeatherForecast((b) => b
               ..dt = 0
-              ..main = MainBuilder()
+              ..main.update((b) => b..temp = 0)
               ..weather = ListBuilder<Weather>([
                 Weather((b) => b..description = '-'),
               ])
               ..dtTxt = '-');
 
-        print(currentWeather.main.temp);
         final nextFourDays = forecasts.length > 1 ? forecasts.sublist(1) : [];
 
         return Scaffold(
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: getBackgroundGradient(
-                currentWeather.weather.isNotEmpty
-                    ? currentWeather.weather.first.description
-                    : '-',
-              ),
-            ),
-            child: Column(
-              children: [
-                // Current Weather Section
-                Expanded(
-                  flex: 55,
-                  child: Center(
+          body: RefreshIndicator(
+            color: Colors.white,
+            backgroundColor: Colors.blue,
+            onRefresh: () async {
+              await Future.delayed(const Duration(seconds: 1));
+              _fetchWeatherData();
+            },
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: getBackgroundGradient(
+                        currentWeather.weather.isNotEmpty
+                            ? currentWeather.weather.first.description
+                            : '-',
+                      ),
+                    ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          getWeatherIcon(
-                            currentWeather.weather.isNotEmpty
-                                ? currentWeather.weather.first.description
-                                : '-',
+                        // Current Weather Section
+                        Expanded(
+                          flex: 55,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  getWeatherIcon(
+                                    currentWeather.weather.isNotEmpty
+                                        ? currentWeather
+                                            .weather.first.description
+                                        : '-',
+                                  ),
+                                  size: 100,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  '${(currentWeather.main.temp ?? 0).toStringAsFixed(1)}°C',
+                                  style: const TextStyle(
+                                    fontSize: 48,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  currentWeather.weather.isNotEmpty
+                                      ? currentWeather.weather.first.description
+                                      : '-',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          size: 100,
-                          color: Colors.white,
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '${(currentWeather.main.temp ?? 0).toStringAsFixed(1)}°C',
-                          style: const TextStyle(
-                            fontSize: 48,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          currentWeather.weather.isNotEmpty
-                              ? currentWeather.weather.first.description
-                              : '-',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            color: Colors.white,
+                        // Forecast Section
+                        Container(
+                          padding: const EdgeInsets.only(
+                              left: 10,
+                              right: 10,
+                              bottom: 10), // Adjust the margin as needed
+
+                          child: SizedBox(
+                            height: 150, // Adjust this value as needed
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: nextFourDays.length,
+                              itemBuilder: (context, index) {
+                                final weather = nextFourDays[index];
+                                return Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  padding: const EdgeInsets.only(
+                                      left: 10, right: 10, bottom: 20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        offset: const Offset(0, 5),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        DateFormat('MMM d').format(
+                                          DateTime.fromMillisecondsSinceEpoch(
+                                            weather.dt * 1000,
+                                          ),
+                                        ),
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Icon(
+                                        getWeatherIcon(weather
+                                                .weather.isNotEmpty
+                                            ? weather.weather.first.description
+                                            : '-'),
+                                        color: Colors.black,
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        '${(weather.main.temp).toStringAsFixed(1)}°C',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                // Forecast Section
-                Expanded(
-                  flex: 25,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: nextFourDays.length,
-                    itemBuilder: (context, index) {
-                      final weather = nextFourDays[index];
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 10),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              offset: const Offset(0, 5),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              DateFormat('MMM d').format(
-                                DateTime.fromMillisecondsSinceEpoch(
-                                  weather.dt * 1000,
-                                ),
-                              ),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 5),
-                            Icon(
-                              getWeatherIcon(weather.weather.isNotEmpty
-                                  ? weather.weather.first.description
-                                  : '-'),
-                              color: Colors.black,
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              '${(weather.main.temp).toStringAsFixed(1)}°C',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
                   ),
                 ),
               ],
