@@ -21,7 +21,6 @@ class WeatherRepository {
       );
 
       final List<dynamic> list = response['list'];
-      print(list);
       final forecasts = list
           .map((item) => WeatherForecast((b) => b
             ..dt = item['dt']
